@@ -26,13 +26,13 @@ def get_list_of_emoticons():
 			#print("{0}, {1}".format(icon, meaning))
 			df = df.append({'Icon': icon, 'Meaning': meaning}, ignore_index = True)
 	print(df)
-	df.to_csv('CSV/test.csv', encoding='utf-8', index=False)
+	df.to_csv('CSV/list_of_emoticons.csv', encoding='utf-8', index=False)
 	return df
 
 
 if __name__ == '__main__':
 	get_list_of_emoticons()
-	df2 = pd.read_csv('CSV/test.csv')
+	df2 = pd.read_csv('CSV/list_of_emoticons.csv')
 	print(df2)
 
 
