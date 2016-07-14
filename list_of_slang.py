@@ -14,5 +14,6 @@ soup = BeautifulSoup(page.content, "html.parser")
 table = soup.find_all("table")[1]
 #print(table)
 dts = soup.find_all("dt")
-print(dts)
+for dt in dts:
+    print(dt)
 
