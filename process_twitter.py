@@ -35,6 +35,7 @@ def process_tweet(tweet):
         c) English words in WordNet(Fell- baum, 1998)
         d) identify punctuation (Penn Treebank)
     """
+    #lists to save stop words, english words, punctuation marks and captalized words.
     stop_words_in_tweet = []
     english_words_in_tweet = []
     punctuation_marks_in_tweet = []
@@ -42,21 +43,25 @@ def process_tweet(tweet):
     num_twitter_tags = 0
     num_exclamation_marks = 0
     num_negations = 0
-
+    # Tokenize the tweet using Stanford Tokenizer.
     tokenized_tweet = StanfordTokenizer().tokenize(tweet)
     all_tokens = tokenized_tweet
+    # Get the stop words in english.
     stop_words = set(stopwords.words('english'))
+    # Get a list of punctuation. 
     punct = list(string.punctuation)
     punct.append('-LRB-')
     punct.append('-RRB-')
     punct.append('-LCB-')
     punct.append('-RCB-')
-    print(tokenized_tweet)
 
+    print(tokenized_tweet)
+    # Count Tags
     for word in tokenized_tweet:
         if word =='U' or word=='T':
             num_twitter_tags += 1
             tokenized_tweet[tokenized_tweet.index(word)] =''
+    # Get stop words and puncts
     for word in tokenized_tweet:
         if word in stop_words:
             stop_words_in_tweet.append(word)
@@ -66,22 +71,17 @@ def process_tweet(tweet):
             if word == '!':
                 num_exclamation_marks += 1
             tokenized_tweet[tokenized_tweet.index(word)] =''
+    # Get negations, english words and captilized words
     for word in tokenized_tweet:
-
-        
         if len(wn.synsets(word)) >0:
-
-            
             if word == 'NOT':
                 num_negations += 1
             else:
                 english_words_in_tweet.append(word)
                 if word[0].isupper():
                     capitalized_words_in_tweet.append(word)
-            
-
             tokenized_tweet[tokenized_tweet.index(word)] =''
-
+    # Remove empty strings from the list and get remaining tokens
     seen = set()
     other_tokens_in_tweet = []
     for item in tokenized_tweet:
