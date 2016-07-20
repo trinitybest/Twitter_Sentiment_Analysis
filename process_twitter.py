@@ -51,42 +51,26 @@ def process_tweet(tweet):
     punct.append('-RRB-')
     punct.append('-LCB-')
     punct.append('-RCB-')
-    #print(punct)
     print(tokenized_tweet)
 
     for word in tokenized_tweet:
-        #print(word)
-        
         if word =='U' or word=='T':
             num_twitter_tags += 1
-            #print(tokenized_tweet.index(word))
             tokenized_tweet[tokenized_tweet.index(word)] =''
     for word in tokenized_tweet:
-        #print("##1", tokenized_tweet)
-        count += 1
-        print(count, word)
         if word in stop_words:
             stop_words_in_tweet.append(word)
-            #tokenized_tweet.remove(word)
             tokenized_tweet[tokenized_tweet.index(word)] =''
         if word in punct:
             punctuation_marks_in_tweet.append(word)
             if word == '!':
                 num_exclamation_marks += 1
-            #tokenized_tweet.remove(word)
             tokenized_tweet[tokenized_tweet.index(word)] =''
-    #print("##2", tokenized_tweet)
-    
-        
-        #print(2, tokenized_tweet)
-        
-    #tokenized_tweet.remove('U')
-    #tokenized_tweet.remove('T')
     for word in tokenized_tweet:
-        #print(word)
+
         
         if len(wn.synsets(word)) >0:
-            #print(word)
+
             
             if word == 'NOT':
                 num_negations += 1
@@ -95,9 +79,9 @@ def process_tweet(tweet):
                 if word[0].isupper():
                     capitalized_words_in_tweet.append(word)
             
-            #tokenized_tweet.remove(word)
+
             tokenized_tweet[tokenized_tweet.index(word)] =''
-        #print(3, tokenized_tweet)
+
     seen = set()
     other_tokens_in_tweet = []
     for item in tokenized_tweet:
@@ -116,7 +100,7 @@ def process_tweet(tweet):
     print(num_twitter_tags)
     print(num_exclamation_marks)
     print(num_negations)
-    #print(stop_words_in_tweet)
+
     
 
     
