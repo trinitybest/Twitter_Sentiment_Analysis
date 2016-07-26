@@ -1,2 +1,5 @@
 .DS_Store
 *.jar
+*.json
+keys.yaml
+full-corpus.csv
