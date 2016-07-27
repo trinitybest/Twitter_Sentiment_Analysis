@@ -3,11 +3,14 @@ Author: TH
 Date: 15/07/2016
 """
 import re
+import nltk
 from nltk.tokenize import StanfordTokenizer 
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
 from nltk.stem import PorterStemmer
 import string
+import csv
+import pandas as pd
 
 
 def pre_process_tweet(tweet):
@@ -22,8 +25,7 @@ def pre_process_tweet(tweet):
     """
     # step a to be continued
     pre_process_a = tweet
-    print(tweet)
-    #print(re.search(r"(?P<url>https?://[^\s]+)", pre_process_a).group("url"))   
+  
     pre_process_b = re.sub(r"((www\.[^\s]+)|(https?://[^\s]+))", "||U||", pre_process_a)    
     pre_process_c = re.sub(r"\s[N|n][O|o][T|t]|\s[N|n][O|o]\s|\snever\s|\sNEVER\s|[N|n]'[T|t]|cannot|CANNOT", " NOT ", pre_process_b)
     pre_process_d = re.sub(r'@[^\s]+', "||T||", pre_process_c)
@@ -31,8 +33,9 @@ def pre_process_tweet(tweet):
     #pre_process_f = re.sub(r"(#[^\s]+)|(\$[^\s]+)","||T||",pre_process_e)
     pre_process_f = re.sub(r"(\$[^\s\d]+)","||T||",pre_process_e)
     pre_process_f = re.sub(r"#([^\s]+)",lambda pat: pat.group(1).lower() ,pre_process_f)
-    print(pre_process_f)
+
     return pre_process_f
+    
 def process_tweet(tweet):
     """ process the tweets
         a) tokenize the tweets using Stanford tokenizer
@@ -62,7 +65,6 @@ def process_tweet(tweet):
     punct.append('-LCB-')
     punct.append('-RCB-')
 
-    print(tokenized_tweet)
     # Count Tags
     for word in tokenized_tweet:
         if word =='U' or word=='T':
@@ -105,7 +107,7 @@ def process_tweet(tweet):
         else:
             featureVector.append(ps.stem(w.lower()))
                 
-    
+    """
     print("stop_words_in_tweet",stop_words_in_tweet)
     print("english_words_in_tweet",english_words_in_tweet)
     print("punctuation_marks_in_tweet",punctuation_marks_in_tweet)
@@ -115,8 +117,21 @@ def process_tweet(tweet):
     print(num_twitter_tags)
     print(num_exclamation_marks)
     print(num_negations)
+    """
+    return {"featureVector": featureVector}
 
+
+# Start extract_features   
+def extract_features(tweet):
+    tweet_words = set(tweet)
+    features = {}
+    for w in featureList:
+        features[w] = (w in tweet_words)
+    return features
     
+    
+
+
 
     
 if __name__ == "__main__":
@@ -125,5 +140,43 @@ if __name__ == "__main__":
     Tweet2 = "@AustenAllred I actually closed it around $97 down from $120ish so nay bad but I would suspect $AAPL is going lower."
     Tweet3 = " CANNOT noise Not aa NEVER CANNOT heihei"
     Tweet4 = "#ApPLe #iPhone. NOt Not no {cannot} cooln't Good slowdown SHOWS shows shows [shows]  up, on @Jabil bottom line, http://bizj.us/1myby0 $AAPL $JBL $155m"
-    pre_process_result = pre_process_tweet("just had some bloodwork done. my arm hurts")
-    process_tweet(pre_process_result)
+    #pre_process_result = pre_process_tweet("just had some bloodwork done. my arm hurts")
+    #process_result = process_tweet(pre_process_result)
+    #print(process_result)
+
+    print('................................................')
+    # Read the tweets from csv file
+    inpTweets = pd.read_csv('sanders-twitter-0.2/full-corpus-irrelavant-removed.csv', encoding='ISO-8859-1')
+    # Get the tweet words
+    tweets = []
+    # Get the feature list
+    featureList = []
+    #------------------------------------------------------------------change back!!!
+    #for row in range (0, len(inpTweets.index)):
+    for row in range (0, 3):
+
+        sentiment = inpTweets.iloc[row, 1]
+        tweet = inpTweets.iloc[row, 4]
+
+        pre_process_result = pre_process_tweet(tweet)
+        featureVector = process_tweet(pre_process_result)['featureVector']
+        featureList.extend(featureVector)
+        tweets.append((featureVector, sentiment))
+    # Remove featureList duplicates
+    featureList = list(set(featureList))
+    
+    # Extract feature vector for all tweets in one shoot
+    training_set = nltk.classify.util.apply_features(extract_features, tweets)
+    #print(training_set)
+    # Train the classifier
+    NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
+
+    # Test the classifier
+    testTweet = 'Congrats @ravikiranj, i heard you wrote a new tech post on sentiment analysis'
+    pre_process_result = pre_process_tweet(testTweet)
+    processedTestTweet = process_tweet(pre_process_result)['featureVector']
+    print( NBClassifier.classify(extract_features(processedTestTweet)))
+    print(NBClassifier.show_most_informative_features(10))
+
+
+
