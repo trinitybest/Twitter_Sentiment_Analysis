@@ -11,6 +11,10 @@ from nltk.stem import PorterStemmer
 import string
 import csv
 import pandas as pd
+from nltk.classify.scikitlearn import SklearnClassifier
+from sklearn.naive_bayes import MultinomialNB, BernoulliNB
+from sklearn.svm import SVC, LinearSVC, NuSVC
+import pickle
 
 
 def pre_process_tweet(tweet):
@@ -146,15 +150,18 @@ if __name__ == "__main__":
 
     print('................................................')
     # Read the tweets from csv file
-    inpTweets = pd.read_csv('sanders-twitter-0.2/full-corpus-irrelavant-removed.csv', encoding='ISO-8859-1')
+    inpTweets = pd.read_csv('sanders-twitter-0.2/full-corpus-2-ways.csv', encoding='ISO-8859-1')
     # Get the tweet words
     tweets = []
     # Get the feature list
     featureList = []
     #------------------------------------------------------------------change back!!!
-    #for row in range (0, len(inpTweets.index)):
-    for row in range (0, 3):
-
+    count = 0
+    for row in range (0, len(inpTweets.index)):
+    #for row in range (0, 3):
+        count += 1
+        if(count%100 == 0):
+            print(count)
         sentiment = inpTweets.iloc[row, 1]
         tweet = inpTweets.iloc[row, 4]
 
@@ -166,6 +173,7 @@ if __name__ == "__main__":
     featureList = list(set(featureList))
     
     # Extract feature vector for all tweets in one shoot
+    print("Extract feature vector for all tweets in one shoot")
     training_set = nltk.classify.util.apply_features(extract_features, tweets)
     #print(training_set)
     # Train the classifier
@@ -175,8 +183,11 @@ if __name__ == "__main__":
     testTweet = 'Congrats @ravikiranj, i heard you wrote a new tech post on sentiment analysis'
     pre_process_result = pre_process_tweet(testTweet)
     processedTestTweet = process_tweet(pre_process_result)['featureVector']
-    print( NBClassifier.classify(extract_features(processedTestTweet)))
-    print(NBClassifier.show_most_informative_features(10))
-
+    #print( NBClassifier.classify(extract_features(processedTestTweet)))
+    #print(NBClassifier.show_most_informative_features(10))
+    LinearSVC_classifier = SklearnClassifier(LinearSVC())
+    LinearSVC_classifier.train(training_set)
+    LSVC_accuracy = nltk.classify.accuracy(LinearSVC_classifier, training_set)
+    print(LSVC_accuracy)
 
 
