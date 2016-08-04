@@ -62,15 +62,23 @@ def process_tweet(tweet):
     # feature vector of original words
     featureVector_full = []
     UandT = []
+    # all words in hashtags
+    hashtags_words = []
     num_twitter_tags = 0
     num_exclamation_marks = 0
     num_negations = 0
+    # f1: Number of Polar (+/-) POS (JJ, RB, VB, NN)
     f1 = 0
+    # f2: Number of Polar other negation words, positive words, negative words
     f2 = 0
+    # f3: Number of extremely-pos., extremely-neg., positive, negative emoticons
+    # -----------------------This part is forth coming--------------------
     f3 = 0
+    # f4: Number of (+/-) hashtags, capitalized words, exclamation words
     f4 = 0
     f5 = 0 
     f6 = 0
+    # f7: Number of hashtags, URLs, targets, newlines
     f7 = 0
     f8 = 0
     f9 = 0
@@ -103,21 +111,20 @@ def process_tweet(tweet):
             num_twitter_tags += 1
             UandT.append(tag)
             pos_tag_t[pos_tag_t.index(tag)]=('','')
-            #tokenized_tweet[tokenized_tweet.index(word)] =''
     f7 = len(hashtags) + num_twitter_tags
+    
     # Get stop words and puncts
     for tag in pos_tag_t:
         word = tag[0]
         if word in stop_words:
             stop_words_in_tweet.append(tag)
             pos_tag_t[pos_tag_t.index(tag)]=('','')
-            #tokenized_tweet[tokenized_tweet.index(word)] =''
         if word in punct:
             punctuation_marks_in_tweet.append(tag)
             if word == '!':
                 num_exclamation_marks += 1
             pos_tag_t[pos_tag_t.index(tag)]=('','')
-            #tokenized_tweet[tokenized_tweet.index(word)] =''
+
     # Get negations, english words and captilized words
     for tag in pos_tag_t:
         word = tag[0]
@@ -131,7 +138,7 @@ def process_tweet(tweet):
                 if word[0].isupper() and len(word)>1:
                     capitalized_words_in_tweet.append(tag)
             pos_tag_t[pos_tag_t.index(tag)]=('','')
-            #tokenized_tweet[tokenized_tweet.index(word)] =''
+
     # Remove empty strings from the list and get remaining tokens without duplication
     """
     seen = set()
@@ -157,7 +164,7 @@ def process_tweet(tweet):
             # change all the feature vector to lower case
             featureVector_full.append(w[0].lower())
             featureVector_stem.append(ps.stem(w[0].lower()))
-    #print(nltk.pos_tag(['full']))
+
     # Check the polarity of features using DAL and WordNet
     sentiment_features = []
     # remove tokens with digits and change words to lowers case
@@ -166,41 +173,51 @@ def process_tweet(tweet):
             tmp = (tag[0].lower(), tag[1])
             sentiment_features.append(tmp)
     print(sentiment_features)
+    # Save polar and non-polar tokens based on DAL library
     polar_tokens = []
     non_polar_tokens = []
     for tag in sentiment_features:
-        #print(feature)
         polar = None
         word = tag[0]
-        print(tag)
-        print(word in df.word.values)
+        #print(tag)
+        # Polar words group 1
         if word in df.word.values:
-            #print(df.loc[df['word']==feature].iloc[0]['Pleasantness'])
             polar = 1
             polar_tokens.append(tag)
-            #print(word)
+            # Get the pleasant value from DAL
             pleasant = df.loc[df['word']==word].iloc[0]['Pleasantness']
-
+            # Check if POS equals JJ, RB, VB, or NN, calculate f1
             if tag[1] == 'JJ' or tag[1] == 'RB' or tag[1] == 'VB' or tag[1] == 'NN':
-                print(tag)
+                print(1, tag)
                 print(pleasant)
+                f8 += pleasant/3
+                # if this POS is positive or negative
                 if pleasant/3<0.5 or pleasant/3>0.8:
                     f1 += 1
-
+            # Calculate f2            
+            if pleasant/3<0.5 or pleasant/3>0.8:
+                f2 += 1
+            f9 += pleasant/3
+                
+        # Polar words group 2
         elif len(wn.synsets(word)) >0:
             flag = 1
             for syn in wn.synsets(word):
                 for l in syn.lemmas():
                     #print('--------------',l.name())
                     if l.name() in df.word.values:
-                        #print(df.loc[df['word']==l.name()].iloc[0]['Pleasantness'])
                         pleasant = df.loc[df['word']==word].iloc[0]['Pleasantness']
 
                         if tag[1] == 'JJ' or tag[1] == 'RB' or tag[1] == 'VB' or tag[1] == 'NN':
-                            print(tag)
+                            print(2, tag)
                             print(pleasant)
+                            f8 += pleasant/3
                             if pleasant/3<0.5 or pleasant/3>0.8:
                                 f1 += 1
+                        # Calculate f2
+                        if pleasant/3<0.5 or pleasant/3>0.8:
+                            f2 += 1
+                        f9 += pleasant/3
                         polar = 1
                         flag = 0
                         break
@@ -210,12 +227,42 @@ def process_tweet(tweet):
                 polar_tokens.append(tag)
             else:
                 non_polar_tokens.append(tag)
+        # Non-polar words
         else:
             non_polar_tokens.append(tag)
+            if tag[1] == 'JJ' or tag[1] == 'RB' or tag[1] == 'VB' or tag[1] == 'NN':
+                print(3, tag)
+                f5 += 1
+            else:
+                print('f6', tag)
+                f6 += 1
+   
+    # change hashtags to lowercase
+    for hashtag in hashtags:
+        if bool(re.search(r'\d', hashtag)) == False:
+            tmp = hashtag.lower()
+            hashtags_words.append(tmp)
 
-                   
-
-
+            
+    # deal with hashtags
+    for hashtag in hashtags_words:
+        if hashtag in df.word.values:
+            pleasant = df.loc[df['word']==hashtag].iloc[0]['Pleasantness']
+            if pleasant/3<0.5 or pleasant/3>0.8:
+                f4 += 1
+        elif len(wn.synsets(hashtag)) >0:
+            pleasant = df.loc[df['word']==hashtag].iloc[0]['Pleasantness']
+            if pleasant/3<0.5 or pleasant/3>0.8:
+                f4 += 1
+        else:
+            pass               
+    f2 += num_negations
+    f4 = f4 + num_exclamation_marks + len(capitalized_words_in_tweet)
+    f10 = len(capitalized_words_in_tweet)/len(all_tokens)
+    if len(capitalized_words_in_tweet)+num_exclamation_marks > 0:
+        f11 = 1
+    else:
+        f11 = 0
 
 
     print("stop_words_in_tweet",stop_words_in_tweet)
@@ -223,12 +270,21 @@ def process_tweet(tweet):
     print("punctuation_marks_in_tweet",punctuation_marks_in_tweet)
     print("capitalized_words_in_tweet",capitalized_words_in_tweet)
     print("other_tokens_in_tweet",other_tokens_in_tweet)
+    print('hashtags', hashtags)
     print(featureVector_stem)
     print(featureVector_full)
-    print(f7)
-    print(f1)
-    print(num_exclamation_marks)
-    print(num_negations)
+    print('f1', f1)
+    print('f2', f2)
+    print('f4', f4)
+    print('f5', f5)
+    print('f6', f6)
+    print('f7', f7)
+    print('f8', f8)
+    print('f9', f9)
+    print('f10', f10)
+    print('f11', f11)
+    print('num_exclamation_marks', num_exclamation_marks)
+    print('num_negations', num_negations)
     
     return {"featureVector_stem": featureVector_stem, "featureVector_full": featureVector_full}
     
@@ -252,7 +308,7 @@ if __name__ == "__main__":
     Tweet2 = "$GOOG #AAPL #IPHONE @AustenAllred I actually closed it around $97 down from $120ish so nay bad but I would suspect $AAPL is going lower."
     Tweet3 = " CANNOT noise Not aa NEVER CANNOT heihei"
     Tweet4 = "#ApPLe abandon #iPhone. NOt Not no {cannot} cooln't Good slowdown SHOWS shows shows [shows]  up, on @Jabil bottom line, http://bizj.us/1myby0 $AAPL $JBL $155m"
-    Tweet5 = "$GOOG #AAPL #IPHONE @AustenAllred actually closed it around $97 down from $120ish so nay bad but would suspect $AAPL is going lower."
+    Tweet5 = "$GOOG #Bad #AAPL #IPHONE @AustenAllred actually not Closed it around $97 down from $120ish so nay bad but would not suspect $AAPL is going lower http://bizj.us/1myby0 !"
     
     process_tweet(Tweet5)
     #print(process_result)
