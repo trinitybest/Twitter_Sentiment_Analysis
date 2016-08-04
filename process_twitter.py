@@ -16,9 +16,9 @@ from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.svm import SVC, LinearSVC, NuSVC
 import pickle
 import pandas as pd
+import random
 
 df = pd.read_csv("DAL/DAL-Full-List.csv")
-#print(df)
 
 def process_tweet(tweet):
     """ pre-process the tweets:
@@ -133,6 +133,7 @@ def process_tweet(tweet):
         elif len(wn.synsets(word)) >0:
             if word == 'NOT':
                 num_negations += 1
+                # Should we save NOT or not???---------------------------------------
             else:
                 english_words_in_tweet.append(tag)
                 if word[0].isupper() and len(word)>1:
@@ -172,7 +173,7 @@ def process_tweet(tweet):
         if bool(re.search(r'\d', tag[0])) == False:
             tmp = (tag[0].lower(), tag[1])
             sentiment_features.append(tmp)
-    print(sentiment_features)
+    #print(sentiment_features)
     # Save polar and non-polar tokens based on DAL library
     polar_tokens = []
     non_polar_tokens = []
@@ -186,10 +187,12 @@ def process_tweet(tweet):
             polar_tokens.append(tag)
             # Get the pleasant value from DAL
             pleasant = df.loc[df['word']==word].iloc[0]['Pleasantness']
+            #print(1.1, tag)
+            #print(pleasant)
             # Check if POS equals JJ, RB, VB, or NN, calculate f1
             if tag[1] == 'JJ' or tag[1] == 'RB' or tag[1] == 'VB' or tag[1] == 'NN':
-                print(1, tag)
-                print(pleasant)
+                #print(1.2, tag)
+                #print(pleasant)
                 f8 += pleasant/3
                 # if this POS is positive or negative
                 if pleasant/3<0.5 or pleasant/3>0.8:
@@ -206,11 +209,12 @@ def process_tweet(tweet):
                 for l in syn.lemmas():
                     #print('--------------',l.name())
                     if l.name() in df.word.values:
-                        pleasant = df.loc[df['word']==word].iloc[0]['Pleasantness']
-
+                        pleasant = df.loc[df['word']==l.name()].iloc[0]['Pleasantness']
+                        #print(2, tag)
+                        #print(pleasant)
                         if tag[1] == 'JJ' or tag[1] == 'RB' or tag[1] == 'VB' or tag[1] == 'NN':
-                            print(2, tag)
-                            print(pleasant)
+                            #print(2, tag)
+                            #print(pleasant)
                             f8 += pleasant/3
                             if pleasant/3<0.5 or pleasant/3>0.8:
                                 f1 += 1
@@ -229,12 +233,13 @@ def process_tweet(tweet):
                 non_polar_tokens.append(tag)
         # Non-polar words
         else:
+            #print(3, tag)
             non_polar_tokens.append(tag)
             if tag[1] == 'JJ' or tag[1] == 'RB' or tag[1] == 'VB' or tag[1] == 'NN':
-                print(3, tag)
+                #print(3, tag)
                 f5 += 1
             else:
-                print('f6', tag)
+                #print('f6', tag)
                 f6 += 1
    
     # change hashtags to lowercase
@@ -246,16 +251,33 @@ def process_tweet(tweet):
             
     # deal with hashtags
     for hashtag in hashtags_words:
+        #print('hashtag', hashtag)
         if hashtag in df.word.values:
+            #print('hashtag1')
             pleasant = df.loc[df['word']==hashtag].iloc[0]['Pleasantness']
             if pleasant/3<0.5 or pleasant/3>0.8:
                 f4 += 1
-        elif len(wn.synsets(hashtag)) >0:
-            pleasant = df.loc[df['word']==hashtag].iloc[0]['Pleasantness']
-            if pleasant/3<0.5 or pleasant/3>0.8:
-                f4 += 1
+        elif len(wn.synsets(hashtag)) >0:   
+            #print('hashtag2')  
+            #print(wn.synsets(hashtag)) 
+            #print(word)   
+            flag = 1
+            for syn in wn.synsets(word):
+                for l in syn.lemmas():                   
+                    if l.name() in df.word.values:
+                        #print('---', word)
+                        pleasant = df.loc[df['word']==l.name()].iloc[0]['Pleasantness']
+
+                        if pleasant/3<0.5 or pleasant/3>0.8:
+                            f4 += 1
+                        flag = 0
+                        break
+                if flag == 0:
+                    break
         else:
-            pass               
+            #print('hashtag3')
+            pass 
+                          
     f2 += num_negations
     f4 = f4 + num_exclamation_marks + len(capitalized_words_in_tweet)
     f10 = len(capitalized_words_in_tweet)/len(all_tokens)
@@ -264,13 +286,14 @@ def process_tweet(tweet):
     else:
         f11 = 0
 
-
+    """
     print("stop_words_in_tweet",stop_words_in_tweet)
     print("english_words_in_tweet",english_words_in_tweet)
     print("punctuation_marks_in_tweet",punctuation_marks_in_tweet)
     print("capitalized_words_in_tweet",capitalized_words_in_tweet)
     print("other_tokens_in_tweet",other_tokens_in_tweet)
     print('hashtags', hashtags)
+    print('UandT', UandT)
     print(featureVector_stem)
     print(featureVector_full)
     print('f1', f1)
@@ -285,16 +308,48 @@ def process_tweet(tweet):
     print('f11', f11)
     print('num_exclamation_marks', num_exclamation_marks)
     print('num_negations', num_negations)
-    
-    return {"featureVector_stem": featureVector_stem, "featureVector_full": featureVector_full}
+    print('length of all tokens', len(all_tokens))
+    """
+    return {"featureVector_stem": featureVector_stem,
+            "f1": f1,
+            "f2": f2,
+            "f3": f3,
+            "f4": f4,
+            "f5": f5,
+            "f6": f6,
+            "f7": f7,
+            "f8": f8,
+            "f9": f9,
+            "f10": f10,
+            "f11": f11
+            }
     
 
-# Start extract_features   
+# Start extract_features (only unigram word features) 
 def extract_features(tweet):
     tweet_words = set(tweet)
     features = {}
     for w in featureList:
         features[w] = (w in tweet_words)
+    return features
+ 
+# Start extract_features (unigram word features and sentiment features)
+def extract_features_2(tweet_dict):
+    tweet_words = set(tweet_dict["featureVector_stem"])
+    features = {}
+    for w in featureList:
+        features[w] = (w in tweet_words)
+    features["f1"] = tweet_dict["f1"]
+    features["f2"] = tweet_dict["f2"]
+    features["f3"] = tweet_dict["f3"]
+    features["f4"] = tweet_dict["f4"]
+    features["f5"] = tweet_dict["f5"]
+    features["f6"] = tweet_dict["f6"]
+    features["f7"] = tweet_dict["f7"]
+    features["f8"] = tweet_dict["f8"]
+    features["f9"] = tweet_dict["f9"]
+    features["f10"] = tweet_dict["f10"]
+    features["f11"] = tweet_dict["f11"]
     return features
     
     
@@ -303,14 +358,14 @@ def extract_features(tweet):
 
     
 if __name__ == "__main__":
-
+    """
     Tweet1 = "Apple's new Swift Playgrounds for iPad is a killer app for teaching code #WWDC $AAPL http://appleinsider.com/articles/16/06/22/apples-new-swift-playgrounds-for-ipad-is-a-killer-app-for-teaching-code …pic.twitter.com/UW8JzzSQrS"
     Tweet2 = "$GOOG #AAPL #IPHONE @AustenAllred I actually closed it around $97 down from $120ish so nay bad but I would suspect $AAPL is going lower."
     Tweet3 = " CANNOT noise Not aa NEVER CANNOT heihei"
     Tweet4 = "#ApPLe abandon #iPhone. NOt Not no {cannot} cooln't Good slowdown SHOWS shows shows [shows]  up, on @Jabil bottom line, http://bizj.us/1myby0 $AAPL $JBL $155m"
     Tweet5 = "$GOOG #Bad #AAPL #IPHONE @AustenAllred actually not Closed it around $97 down from $120ish so nay bad but would not suspect $AAPL is going lower http://bizj.us/1myby0 !"
-    
-    process_tweet(Tweet5)
+    Tweet6 = "Apple Announces New iMac (Video) http://bit.ly/k45C0J *First Look: faster with powerful graphics* #AAPL"
+    process_tweet(Tweet6)
     #print(process_result)
     """
     print('................................................')
@@ -320,8 +375,12 @@ if __name__ == "__main__":
     tweets = []
     # Get the feature list
     featureList = []
-    #------------------------------------------------------------------change back!!!
+    # Get the feature set
+    featuresets = []
+    # temporary tweet_dicts
+    tweet_dicts = []
     count = 0
+    #------------------------------------------------
     for row in range (0, len(inpTweets.index)):
     #for row in range (0, 3):
         count += 1
@@ -330,17 +389,36 @@ if __name__ == "__main__":
         sentiment = inpTweets.iloc[row, 1]
         tweet = inpTweets.iloc[row, 4]
 
-        pre_process_result = pre_process_tweet(tweet)
-        featureVector = process_tweet(pre_process_result)['featureVector']
+        featureVector = process_tweet(tweet)['featureVector_stem']
         featureList.extend(featureVector)
         tweets.append((featureVector, sentiment))
+        tweet_dicts.append((process_tweet(tweet), sentiment))
+        
     # Remove featureList duplicates
     featureList = list(set(featureList))
-    
+    # Create featuresets ------------------------------------------------
+    count = 0
+    #for row in range (0, len(inpTweets.index)):
+    #------------------------------------------------
+    """
+    for row in range (0, 3):
+        count += 1
+        if(count%100 == 0):
+            print(count)
+        sentiment = inpTweets.iloc[row, 1]
+        tweet = inpTweets.iloc[row, 4]
+        #------------------------------------------------
+        #featuresets.append((extract_features_2(process_tweet(tweet)), sentiment))
+        featuresets.append((extract_features(process_tweet(tweet)["featureVector_stem"]), sentiment))
     # Extract feature vector for all tweets in one shoot
+    print(featuresets)
+    """
     print("Extract feature vector for all tweets in one shoot")
-    training_set = nltk.classify.util.apply_features(extract_features, tweets)
+    training_set = nltk.classify.util.apply_features(extract_features_2, tweet_dicts)
+    #training_set = nltk.classify.util.apply_features(extract_features, tweets)
+    print(training_set)
     #print(training_set)
+    """
     # Train the classifier
     NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
 
@@ -350,9 +428,10 @@ if __name__ == "__main__":
     processedTestTweet = process_tweet(pre_process_result)['featureVector']
     #print( NBClassifier.classify(extract_features(processedTestTweet)))
     #print(NBClassifier.show_most_informative_features(10))
-    LinearSVC_classifier = SklearnClassifier(LinearSVC())
-    LinearSVC_classifier.train(training_set)
-    LSVC_accuracy = nltk.classify.accuracy(LinearSVC_classifier, training_set)
-    print(LSVC_accuracy)
     """
+    LinearSVC_classifier = SklearnClassifier(LinearSVC())
+    LinearSVC_classifier.train(training_set[0:400])
+    LSVC_accuracy = nltk.classify.accuracy(LinearSVC_classifier, training_set[400:800])
+    print(LSVC_accuracy)
+    
 
