@@ -133,6 +133,7 @@ def process_tweet(tweet):
         elif len(wn.synsets(word)) >0:
             if word == 'NOT':
                 num_negations += 1
+                english_words_in_tweet.append('NOT')
                 # Should we save NOT or not???---------------------------------------
             else:
                 english_words_in_tweet.append(tag)
