@@ -352,23 +352,42 @@ def extract_features_2(tweet_dict):
     features["f10"] = tweet_dict["f10"]
     features["f11"] = tweet_dict["f11"]
     return features
-    
+
+# this function has two parameters, the first one is featureList, the second one is the actual tweet.
+def extract_features_3(featureList_param, tweet_dict):
+    tweet_words = set(tweet_dict["featureVector_stem"])
+    features = {}
+    for w in featureList_param:
+        features[w] = (w in tweet_words)
+    features["f1"] = tweet_dict["f1"]
+    features["f2"] = tweet_dict["f2"]
+    features["f3"] = tweet_dict["f3"]
+    features["f4"] = tweet_dict["f4"]
+    features["f5"] = tweet_dict["f5"]
+    features["f6"] = tweet_dict["f6"]
+    features["f7"] = tweet_dict["f7"]
+    features["f8"] = tweet_dict["f8"]
+    features["f9"] = tweet_dict["f9"]
+    features["f10"] = tweet_dict["f10"]
+    features["f11"] = tweet_dict["f11"]
+    return features   
     
 
 
 
     
 if __name__ == "__main__":
-    """
+    
     Tweet1 = "Apple's new Swift Playgrounds for iPad is a killer app for teaching code #WWDC $AAPL http://appleinsider.com/articles/16/06/22/apples-new-swift-playgrounds-for-ipad-is-a-killer-app-for-teaching-code …pic.twitter.com/UW8JzzSQrS"
     Tweet2 = "$GOOG #AAPL #IPHONE @AustenAllred I actually closed it around $97 down from $120ish so nay bad but I would suspect $AAPL is going lower."
     Tweet3 = " CANNOT noise Not aa NEVER CANNOT heihei"
     Tweet4 = "#ApPLe abandon #iPhone. NOt Not no {cannot} cooln't Good slowdown SHOWS shows shows [shows]  up, on @Jabil bottom line, http://bizj.us/1myby0 $AAPL $JBL $155m"
     Tweet5 = "$GOOG #Bad #AAPL #IPHONE @AustenAllred actually not Closed it around $97 down from $120ish so nay bad but would not suspect $AAPL is going lower http://bizj.us/1myby0 !"
     Tweet6 = "Apple Announces New iMac (Video) http://bit.ly/k45C0J *First Look: faster with powerful graphics* #AAPL"
-    process_tweet(Tweet6)
+    Tweet7 = "øΩ Vintage GE Motors Ashtray  #vintage #GE #mantique http://etsy.me/1ev70Qw pic.twitter.com/Duztcj7xUj"
+    #process_tweet(Tweet6)
     #print(process_result)
-    """
+    
     print('................................................')
     # Read the tweets from csv file
     inpTweets = pd.read_csv('sanders-twitter-0.2/full-corpus-2-ways.csv', encoding='ISO-8859-1')
@@ -397,32 +416,19 @@ if __name__ == "__main__":
         
     # Remove featureList duplicates
     featureList = list(set(featureList))
+    # Save featureList to a pickled file
+    save_featureList = open("pickled/featureList_2_ways.pickle", "wb")
+    pickle.dump(featureList, save_featureList)
+    save_featureList.close()
     # Create featuresets ------------------------------------------------
     count = 0
-    #for row in range (0, len(inpTweets.index)):
-    #------------------------------------------------
-    """
-    for row in range (0, 3):
-        count += 1
-        if(count%100 == 0):
-            print(count)
-        sentiment = inpTweets.iloc[row, 1]
-        tweet = inpTweets.iloc[row, 4]
-        #------------------------------------------------
-        #featuresets.append((extract_features_2(process_tweet(tweet)), sentiment))
-        featuresets.append((extract_features(process_tweet(tweet)["featureVector_stem"]), sentiment))
-    # Extract feature vector for all tweets in one shoot
-    print(featuresets)
-    """
     print("Extract feature vector for all tweets in one shoot")
     training_set = nltk.classify.util.apply_features(extract_features_2, tweet_dicts)
-    #training_set = nltk.classify.util.apply_features(extract_features, tweets)
     print(training_set)
-    #print(training_set)
+
     """
     # Train the classifier
     NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
-
     # Test the classifier
     testTweet = 'Congrats @ravikiranj, i heard you wrote a new tech post on sentiment analysis'
     pre_process_result = pre_process_tweet(testTweet)
@@ -431,8 +437,14 @@ if __name__ == "__main__":
     #print(NBClassifier.show_most_informative_features(10))
     """
     LinearSVC_classifier = SklearnClassifier(LinearSVC())
-    LinearSVC_classifier.train(training_set[0:400])
-    LSVC_accuracy = nltk.classify.accuracy(LinearSVC_classifier, training_set[400:800])
+    LinearSVC_classifier.train(training_set)
+    save_LinearSVC_classifier = open("pickled/LinearSVC_classifier_2_ways.pickled", "wb")
+    pickle.dump(LinearSVC_classifier, save_LinearSVC_classifier)
+    save_LinearSVC_classifier.close()
+
+    LSVC_accuracy = nltk.classify.accuracy(LinearSVC_classifier, training_set)
     print(LSVC_accuracy)
+    print(LinearSVC_classifier.classify(extract_features_2(process_tweet(Tweet7))))
+
     
 
