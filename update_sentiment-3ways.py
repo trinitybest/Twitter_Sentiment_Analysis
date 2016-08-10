@@ -15,7 +15,7 @@ def strip_non_ascii(string):
     return ''.join(stripped)
 
 # query to run
-query  = "SELECT TOP 1 * FROM dbo.Twitter_Tweets"
+#query  = "SELECT TOP 1 * FROM dbo.Twitter_Tweets"
 # database connection string
 keys = yaml.load(open('keys.yaml', 'r'))
 server = keys['server']
@@ -24,6 +24,7 @@ password = keys['password']
 database = keys['database']
 conn = pyodbc.connect('DRIVER={SQL Server};SERVER='+server+';PORT=1433;DATABASE='+database+';UID='+user+';PWD='+password)
 cursor = conn.cursor()
+#--------------Change the SQL
 cursor.execute(
 """
 SELECT * 
@@ -41,17 +42,16 @@ OR HashTags LIKE '%JNJ%'
 OR HashTags LIKE '%GE%'
 OR HashTags LIKE '%AMZN%'
 OR HashTags LIKE '%WFC%')
-AND CreatedAt > '2015-12-31 00:00:00.0000000'
-AND Sentiment is NULL
+AND CreatedAt > '2016-01-01 00:00:00.0000000'
 """)
 rows = cursor.fetchall()
 print(len(rows))
 # load featureList 
-load_featureList = open("pickled/v1/featureList_2_ways.pickle", "rb")
+load_featureList = open("pickled/v2/featureList_3_ways.pickle", "rb")
 featureList = pickle.load(load_featureList)
 load_featureList.close()
 # load LinearSVC_classifier
-load_LinearSVC_classifier = open("pickled/v1/LinearSVC_classifier_2_ways.pickled", "rb")
+load_LinearSVC_classifier = open("pickled/v2/LinearSVC_classifier_3_ways.pickled", "rb")
 LinearSVC_classifier = pickle.load(load_LinearSVC_classifier)
 load_LinearSVC_classifier.close()
 
@@ -70,20 +70,24 @@ for row in rows:
         print(count)
     try:
         classified_sentiment = LinearSVC_classifier.classify(extract_features_3(featureList, process_tweet(row.Text)))
-        #print("classified_sentiment", classified_sentiment)
-        update_query = "UPDATE dbo.Twitter_Tweets SET Sentiment=? WHERE TweetId = ?"
+        #print('1', process_tweet(row.Text))
+        
+        update_query = "UPDATE dbo.Twitter_Tweets SET Sentiment2=? WHERE TweetId = ?"
         cursor.execute(update_query, [classified_sentiment, row.TweetId])
         conn.commit()
+        
     except Exception as e1:
-        #print(1, e1)
+
         try:
             classified_sentiment = LinearSVC_classifier.classify(extract_features_3(featureList, process_tweet(strip_non_ascii(row.Text))))
-            #print("classified_sentiment", classified_sentiment)
-            update_query = "UPDATE dbo.Twitter_Tweets SET Sentiment=? WHERE TweetId = ?"
+            #print('2--', process_tweet(row.Text))
+            
+            update_query = "UPDATE dbo.Twitter_Tweets SET Sentiment2=? WHERE TweetId = ?"
             cursor.execute(update_query, [classified_sentiment, row.TweetId])
             conn.commit()
+            
         except Exception as e2:
-            print(2, e2)
+            print(3, e2)
 
 
 
