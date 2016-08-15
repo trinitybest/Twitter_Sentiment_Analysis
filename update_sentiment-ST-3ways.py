@@ -18,32 +18,30 @@ def strip_non_ascii(string):
 #query  = "SELECT TOP 1 * FROM dbo.Twitter_Tweets"
 # database connection string
 keys = yaml.load(open('keys.yaml', 'r'))
-server = keys['server']
-user = keys['user']
-password = keys['password']
-database = keys['database']
+server = keys['STserver']
+user = keys['STuser']
+password = keys['STpassword']
+database = keys['STdatabase']
 conn = pyodbc.connect('DRIVER={SQL Server};SERVER='+server+';PORT=1433;DATABASE='+database+';UID='+user+';PWD='+password)
 cursor = conn.cursor()
-#--------------Change the SQL
 cursor.execute(
 """
-SELECT * 
-FROM dbo.Twitter_Tweets
+SELECT *
+FROM dbo.StockTwits_Tweets
 WHERE 
-(HashTags LIKE '%#AAPL%'
-OR HashTags LIKE '%GOOG%'
-OR HashTags LIKE '%GOOGL%'
-OR HashTags LIKE '%MSFT%'
-OR HashTags LIKE '%BRK.A%'
-OR HashTags LIKE '%BRK.B%'
-OR HashTags LIKE '%XOM%'
-OR HashTags LIKE '%FB%'
-OR HashTags LIKE '%JNJ%'
-OR HashTags LIKE '%GE%'
-OR HashTags LIKE '%AMZN%'
-OR HashTags LIKE '%WFC%')
-AND CreatedAt > '2016-01-01 00:00:00.0000000'
-AND Sentiment2 is NULL
+(TickersInclude LIKE '%#AAPL%'
+OR TickersInclude LIKE '%GOOG%'
+OR TickersInclude LIKE '%GOOGL%'
+OR TickersInclude LIKE '%MSFT%'
+OR TickersInclude LIKE '%BRK.A%'
+OR TickersInclude LIKE '%BRK.B%'
+OR TickersInclude LIKE '%XOM%'
+OR TickersInclude LIKE '%FB%'
+OR TickersInclude LIKE '%JNJ%'
+OR TickersInclude LIKE '%GE%'
+OR TickersInclude LIKE '%AMZN%'
+OR TickersInclude LIKE '%WFC%')
+AND Date > '2015-12-31'
 """)
 rows = cursor.fetchall()
 print(len(rows))
@@ -70,25 +68,23 @@ for row in rows:
     if count % 1000 == 0:
         print(count)
     try:
-        classified_sentiment = LinearSVC_classifier.classify(extract_features_3(featureList, process_tweet(row.Text)))
-        #print('1', process_tweet(row.Text))
-        
-        update_query = "UPDATE dbo.Twitter_Tweets SET Sentiment2=? WHERE TweetId = ?"
-        cursor.execute(update_query, [classified_sentiment, row.TweetId])
+        classified_sentiment = LinearSVC_classifier.classify(extract_features_3(featureList, process_tweet(row.Body)))
+        #print("classified_sentiment", classified_sentiment)
+        #print(row.TweetID)
+        update_query = "UPDATE dbo.StockTwits_Tweets SET Sentiment3ways=? WHERE TweetID = ?"
+        cursor.execute(update_query, [classified_sentiment, row.TweetID])
         conn.commit()
         
     except Exception as e1:
-
+        #print(1, e1)
         try:
-            classified_sentiment = LinearSVC_classifier.classify(extract_features_3(featureList, process_tweet(strip_non_ascii(row.Text))))
-            #print('2--', process_tweet(row.Text))
-            
-            update_query = "UPDATE dbo.Twitter_Tweets SET Sentiment2=? WHERE TweetId = ?"
-            cursor.execute(update_query, [classified_sentiment, row.TweetId])
+            classified_sentiment = LinearSVC_classifier.classify(extract_features_3(featureList, process_tweet(strip_non_ascii(row.Body))))
+            #print("classified_sentiment", classified_sentiment)
+            update_query = "UPDATE dbo.StockTwits_Tweets SET Sentiment3ways=? WHERE TweetID = ?"
+            cursor.execute(update_query, [classified_sentiment, row.TweetID])
             conn.commit()
-            
         except Exception as e2:
-            print(3, e2)
+            print(2, e2)
 
 
 
